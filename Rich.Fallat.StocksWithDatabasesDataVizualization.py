@@ -1,9 +1,9 @@
 """
-Author: Rich 
-email:     
-Date:       
-Version:    1.0
-Code Purpose:
+Author: Rich Fallat
+email:  rich.fallat@du.edu   
+Date:       6/4/21
+Version:    2.0
+Code Purpose: To read json data, graph the data, and save the data to a database.
 
 """
 from datetime import datetime
