@@ -11,110 +11,151 @@ import json
 import matplotlib.pyplot as plt
 import sqlite3
 
-# dictionary setup
-filename = "AllStocks.json"
-with open(filename) as f:
-    data = json.load(f)
 
-# Create entries for stock value based on number of shares
-def getStockVal(symbol, close):
-    """Calculate the stock value at closing price"""
-    num_shares = {
-        "GOOG": 25,
-        "MSFT": 85,
-        "RDS-A": 400,
-        "AIG": 235,
-        "FB": 150,
-        "M": 425,
-        "F": 85,
-        "IBM": 80
-    }
-    return num_shares[symbol] * close
+class StockGraph:
+    """Create a time series graph from a json file"""
+    def __init__(self, jsonFile):
+        try:
+            self._jsonFile = str(jsonFile)
+        except TypeError:
+            print("TypeError: The given file is not a string.")
 
+        self._stocks = {
+            "GOOG": {
+                "num_shares": 25,
+                "color": "#66D9EF"
+            },
+            "MSFT": {
+                "num_shares": 85,
+                "color": "#E6DB74"
+            },
+            "RDS-A": {
+                "num_shares": 400,
+                "color": "#A6E22E"
+            },
+            "AIG": {
+                "num_shares": 235,
+                "color": "#F92672"
+            },
+            "FB": {
+                "num_shares": 150,
+                "color": "#AE81FF"
+            },
+            "M": {
+                "num_shares": 425,
+                "color": "#FD971F"
+            },
+            "F": {
+                "num_shares": 85,
+                "color": "#272822"
+            },
+            "IBM": {
+                "num_shares": 80,
+                "color": "#7C806C"
+            }
+        }
 
-# Transform the data so it is ready for graphing
-def getSubplot(symbol, symbolList, dateList, closeList):
-    """Parse lists to create subplot"""
+        self.symbol = []
+        self.date = []
+        self.close = []
 
-    date, close = [], []
+    def getJsonFile(self):
+        return self._jsonFile
 
-    for i in range(len(symbolList)):
-        if symbolList[i] == symbol:
-            date.append(dateList[i])
-            close.append(closeList[i])
+    def getJsonData(self):
+        # dictionary setup
+        filename = self.getJsonFile()
+        with open(filename) as f:
+            data = json.load(f)
+        return data
 
-    return date, close
+    def getStocks(self):
+        return self._stocks
 
-# Transform JSON data to lists
-symbol, date, close = [], [], []
+    def getStockVal(self, symbol, close):
+        """Calculate the stock value at closing price"""
+        return self.getStocks()[symbol]["num_shares"] * close
 
-for i in data:
-    symbol.append(i["Symbol"])
-    # convert json data to datetime object
-    date.append(datetime.strptime(i["Date"], "%d-%b-%y"))
-    # calculate stock value based on number of shares
-    close.append(round(getStockVal(i["Symbol"], i["Close"]), 2))
+    def xformJson(self):
+        """Transform json data into lists"""
+        self.symbol, self.date, self.close = [], [], []
 
-# Get subplots
-goog_date, goog_close = getSubplot("GOOG", symbol, date, close)
-msft_date, msft_close = getSubplot("MSFT", symbol, date, close)
-rdsa_date, rdsa_close = getSubplot("RDS-A", symbol, date, close)
-aig_date, aig_close = getSubplot("AIG", symbol, date, close)
-fb_date, fb_close = getSubplot("FB", symbol, date, close)
-m_date, m_close = getSubplot("M", symbol, date, close)
-f_date, f_close = getSubplot("F", symbol, date, close)
-ibm_date, ibm_close = getSubplot("IBM", symbol, date, close)
+        for i in self.getJsonData():
+            self.symbol.append(i["Symbol"])
+            # convert json data to datetime object
+            self.date.append(datetime.strptime(i["Date"], "%d-%b-%y"))
+            # calculate stock value based on number of shares
+            self.close.append(round(self.getStockVal(i["Symbol"], i["Close"]), 2))
 
-# Run the graph
-plt.style.use("seaborn")
-fig, ax = plt.subplots()
+        return self.symbol, self.date, self.close
 
-ax.plot(goog_date, goog_close, c="#66D9EF", label="GOOG")
-ax.plot(msft_date, msft_close, c="#E6DB74", label="MSFT")
-ax.plot(rdsa_date, rdsa_close, c="#A6E22E", label="RDS-A")
-ax.plot(aig_date, aig_close, c="#F92672", label="AIG")
-ax.plot(fb_date, fb_close, c="#AE81FF", label="FB")
-ax.plot(m_date, m_close, c="#FD971F", label="M")
-ax.plot(f_date, f_close, c="#272822", label="F")
-ax.plot(ibm_date, ibm_close, c="#7C806C", label="IBM")
+    def getSubplot(self, symbol):
+        """Parse lists to create subplot"""
+        symbolList, dateList, closeList = self.xformJson()
 
-# Format plot
-ax.set_title("All Stock Values", fontsize=18)
-ax.set_ylabel("Stock Value", fontsize=12)
-fig.autofmt_xdate()
-plt.legend()
+        date, close = [], []
 
-# Save the image
-plt.savefig("AllStocks.png")
+        for i in range(len(symbolList)):
+            if symbolList[i] == symbol:
+                date.append(dateList[i])
+                close.append(closeList[i])
 
-# Save transformed JSON Data to a database
-conn = sqlite3.connect("AllStocks.db")
-c = conn.cursor()
+        return date, close
 
-c.execute("""CREATE TABLE IF NOT EXISTS allStocks (
-            symbol text,
-            date text,
-            close float
-        )""")
+    def makePlots(self):
+        """Create subplots based on symbols"""
+        plt.style.use("seaborn")
+        fig, ax = plt.subplots()
 
-# Transform data to tuples for database
-many_stocks = []
+        for i in self.getStocks().keys():
+            date, close = self.getSubplot(i)
+            ax.plot(date, close, c=self.getStocks()[i]["color"], label=i)
 
-for i in range(len(symbol)):
-    many_stocks.append((symbol[i], date[i], close[i]))
+        # Format plot
+        ax.set_title("All Stock Values", fontsize=18)
+        ax.set_ylabel("Stock Value", fontsize=12)
+        fig.autofmt_xdate()
+        plt.legend()
 
-c.executemany("INSERT INTO allStocks VALUES (?, ?, ?)", many_stocks)
+        # Save the image
+        plt.savefig("AllStocks.png")
 
-# Validate that tables are available
-rows = c.execute("SELECT * FROM allStocks").fetchall()
-counter = 0
-for i in rows:
-    print(i)
-    counter += 1
+    def putDB(self, dbFile):
+        """Save data to database"""
+        try:
+            self.dbFile = str(dbFile)
+        except TypeError:
+            print("TypeError: The given file is not a string.")
 
-print(f"All Stocks DB contains {counter} rows.")
+        conn = sqlite3.connect(self.dbFile)
+        c = conn.cursor()
 
-conn.commit()
-conn.close()
+        c.execute("""CREATE TABLE IF NOT EXISTS allStocks (
+                    symbol text,
+                    date text,
+                    close float
+                )""")
 
+        # Transform data to tuples for database
+        many_stocks = []
 
+        for i in range(len(self.symbol)):
+            many_stocks.append((self.symbol[i], self.date[i], self.close[i]))
+
+        c.executemany("INSERT INTO allStocks VALUES (?, ?, ?)", many_stocks)
+
+        # Validate that tables are available
+        rows = c.execute("SELECT * FROM allStocks").fetchall()
+        counter = 0
+        for i in rows:
+            print(i)
+            counter += 1
+
+        print(f"{self.dbFile} contains {counter} rows.")
+
+        conn.commit()
+        conn.close()
+
+stocks = StockGraph("AllStocks.json")
+stocks.makePlots()
+stocks.putDB("AllStocks.db")
