@@ -186,4 +186,4 @@ class StockGraph:
 stocks = StockGraph("AllStocks.json")
 stocks.setStocks()
 stocks.makePlots()
-#stocks.putDB("AllStocks.db")
+stocks.putDB("AllStocks.db")
