@@ -58,7 +58,7 @@ class StockGraph:
         self.symbol = []
         self.date = []
         self.close = []
-
+        
     def getJsonFile(self):
         return self._jsonFile
 
@@ -74,7 +74,10 @@ class StockGraph:
 
     def getStockVal(self, symbol, close):
         """Calculate the stock value at closing price"""
-        return self.getStocks()[symbol]["num_shares"] * close
+        try:
+            return self.getStocks()[symbol]["num_shares"] * close
+        except KeyError:
+            return 0
 
     def xformJson(self):
         """Transform json data into lists"""
@@ -85,7 +88,11 @@ class StockGraph:
             # convert json data to datetime object
             self.date.append(datetime.strptime(i["Date"], "%d-%b-%y"))
             # calculate stock value based on number of shares
-            self.close.append(round(self.getStockVal(i["Symbol"], i["Close"]), 2))
+            try:
+                self.close.append(round(self.getStockVal(i["Symbol"], i["Close"]), 2))
+            except TypeError:
+                print("TypeError: The number shares input is not a number.")
+                self.close.append(0)
 
         return self.symbol, self.date, self.close
 
@@ -156,6 +163,27 @@ class StockGraph:
         conn.commit()
         conn.close()
 
+    def setStocks(self):
+        """Set the stocks via user input."""
+        active = "n"
+
+        active = input("Would you like to input the stock data? y/n ")
+
+        # reset init stocks dictionary
+        if active == "y":
+            self._stocks = {}
+
+        while active == "y":
+            symbol = input("Which symbol? ")
+            num_shares = float(input("How many shares? "))
+            color = input("What color? ")
+            self._stocks[symbol] = {
+                "num_shares": num_shares,
+                "color": color
+            }
+            active = input("Would you like to add another stock? y/n ")
+
 stocks = StockGraph("AllStocks.json")
+stocks.setStocks()
 stocks.makePlots()
-stocks.putDB("AllStocks.db")
+#stocks.putDB("AllStocks.db")
